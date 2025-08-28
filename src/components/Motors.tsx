@@ -10,29 +10,11 @@ import {
   Info,
   Edit,
   Wrench,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
-
-interface Motor {
-  id: string;
-  companyId: string;
-  companyName: string;
-  motorId: string;
-  manufacturer: string;
-  model: string;
-  serialNumber: string;
-  type: 'AC' | 'DC' | 'Servo' | 'Generator' | 'Turbine';
-  voltage: string;
-  amperage: string;
-  power: string;
-  rpm: string;
-  phase: 'single' | 'three';
-  frequency: string;
-  condition: 'excellent' | 'good' | 'fair' | 'poor';
-  location: string;
-  lastService: string;
-  createdAt: string;
-}
+import { useMotors, useCompanies } from '../hooks/useSupabase';
+import type { Motor } from '../lib/supabase';
 
 const Motors = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,89 +22,52 @@ const Motors = () => {
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { motors, loading, error, addMotor } = useMotors();
+  const { companies } = useCompanies();
 
-  const motors: Motor[] = [
-    {
-      id: 'M001',
-      companyId: 'C001',
-      companyName: 'Manufacturing Solutions Ltd',
-      motorId: 'MT-2024-001',
-      manufacturer: 'Siemens',
-      model: '1LA7 130-4AA60',
-      serialNumber: 'SN2024001',
-      type: 'AC',
-      voltage: '460V',
-      amperage: '14.2A',
-      power: '7.5 HP',
-      rpm: '1750',
-      phase: 'three',
-      frequency: '60Hz',
-      condition: 'good',
-      location: 'Production Line A',
-      lastService: '2024-01-15',
-      createdAt: '2024-01-10'
-    },
-    {
-      id: 'M002',
-      companyId: 'C002',
-      companyName: 'Industrial Power Corp',
-      motorId: 'DC-2024-002',
-      manufacturer: 'Baldor',
-      model: 'CDP3455',
-      serialNumber: 'BL2024002',
-      type: 'DC',
-      voltage: '240V',
-      amperage: '18.5A',
-      power: '5 HP',
-      rpm: '1800',
-      phase: 'single',
-      frequency: 'DC',
-      condition: 'fair',
-      location: 'Conveyor System',
-      lastService: '2023-11-20',
-      createdAt: '2023-11-15'
-    },
-    {
-      id: 'M003',
-      companyId: 'C001',
-      companyName: 'Manufacturing Solutions Ltd',
-      motorId: 'SV-2024-003',
-      manufacturer: 'Allen-Bradley',
-      model: 'MPL-B330P-SJ24AA',
-      serialNumber: 'AB2024003',
-      type: 'Servo',
-      voltage: '460V',
-      amperage: '8.1A',
-      power: '3 HP',
-      rpm: '3000',
-      phase: 'three',
-      frequency: '60Hz',
-      condition: 'excellent',
-      location: 'CNC Machine 3',
-      lastService: '2024-02-01',
-      createdAt: '2024-01-25'
-    },
-    {
-      id: 'M004',
-      companyId: 'C003',
-      companyName: 'Metro Manufacturing',
-      motorId: 'GN-2024-004',
-      manufacturer: 'Caterpillar',
-      model: 'C15 ACERT',
-      serialNumber: 'CAT2024004',
-      type: 'Generator',
-      voltage: '480V',
-      amperage: '156A',
-      power: '125 kW',
-      rpm: '1800',
-      phase: 'three',
-      frequency: '60Hz',
-      condition: 'good',
-      location: 'Emergency Power Room',
-      lastService: '2024-01-30',
-      createdAt: '2024-01-20'
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const motorData = {
+        company_id: formData.get('company_id') as string,
+        motor_id: formData.get('motor_id') as string,
+        manufacturer: formData.get('manufacturer') as string || undefined,
+        model: formData.get('model') as string || undefined,
+        serial_number: formData.get('serial_number') as string || undefined,
+        type: formData.get('type') as Motor['type'],
+        voltage: formData.get('voltage') as string || undefined,
+        amperage: formData.get('amperage') as string || undefined,
+        power: formData.get('power') as string || undefined,
+        phase: formData.get('phase') as Motor['phase'] || undefined,
+        frequency: formData.get('frequency') as string || undefined,
+        connection_type: formData.get('connection_type') as string || undefined,
+        rpm: formData.get('rpm') as string || undefined,
+        frame_size: formData.get('frame_size') as string || undefined,
+        mounting_type: formData.get('mounting_type') as string || undefined,
+        insulation_class: formData.get('insulation_class') as string || undefined,
+        duty_cycle: formData.get('duty_cycle') as string || undefined,
+        environment: formData.get('environment') as string || undefined,
+        condition: formData.get('condition') as Motor['condition'] || 'good',
+        location: formData.get('location') as string || undefined,
+        technical_notes: formData.get('technical_notes') as string || undefined
+      };
+      
+      await addMotor(motorData);
+      setShowAddModal(false);
+      setActiveTab(0);
+      e.currentTarget.reset();
+    } catch (err) {
+      console.error('Failed to add motor:', err);
+      alert('Failed to add motor. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-  ];
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -157,19 +102,39 @@ const Motors = () => {
   };
 
   const filteredMotors = motors.filter(motor => {
-    const matchesSearch = motor.motorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.serialNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const companyName = companies.find(c => c.id === motor.company_id)?.name || '';
+    const matchesSearch = motor.motor_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (motor.manufacturer || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (motor.model || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (motor.serial_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         companyName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = typeFilter === 'all' || motor.type === typeFilter;
-    const matchesCompany = companyFilter === 'all' || motor.companyId === companyFilter;
+    const matchesCompany = companyFilter === 'all' || motor.company_id === companyFilter;
     
     return matchesSearch && matchesType && matchesCompany;
   });
 
-  const companies = Array.from(new Set(motors.map(m => ({ id: m.companyId, name: m.companyName }))))
-    .filter((company, index, arr) => arr.findIndex(c => c.id === company.id) === index);
+  if (loading) {
+    return (
+      <div className="p-4 lg:p-6 flex items-center justify-center min-h-96">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-gray-600">Loading motors...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 lg:p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Error loading motors: {error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-6 pb-24 lg:pb-6">
@@ -234,106 +199,111 @@ const Motors = () => {
 
       {/* Motors Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {filteredMotors.map((motor) => (
-          <div key={motor.id} className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                    <Settings className="h-6 w-6 text-gray-600" />
+        {filteredMotors.map((motor) => {
+          const company = companies.find(c => c.id === motor.company_id);
+          return (
+            <div key={motor.id} className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                      <Settings className="h-6 w-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">{motor.motor_id}</h3>
+                      <p className="text-sm text-gray-600">{company?.name || 'Unknown Company'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">{motor.motorId}</h3>
-                    <p className="text-sm text-gray-600">{motor.companyName}</p>
-                  </div>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeColor(motor.type)}`}>
-                  {motor.type} Motor
-                </span>
-              </div>
-
-              {/* Motor Details */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Manufacturer:</span>
-                  <span className="font-medium text-gray-900">{motor.manufacturer}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Model:</span>
-                  <span className="font-medium text-gray-900">{motor.model}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Serial Number:</span>
-                  <span className="font-mono text-sm text-gray-900">{motor.serialNumber}</span>
-                </div>
-              </div>
-
-              {/* Key Specifications */}
-              <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <Zap className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <p className="text-xs text-gray-600">Voltage</p>
-                  <p className="font-medium text-gray-900">{motor.voltage}</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <Settings className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <p className="text-xs text-gray-600">Power</p>
-                  <p className="font-medium text-gray-900">{motor.power}</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <Gauge className="h-4 w-4 text-green-600" />
-                  </div>
-                  <p className="text-xs text-gray-600">RPM</p>
-                  <p className="font-medium text-gray-900">{motor.rpm}</p>
-                </div>
-              </div>
-
-              {/* Condition and Location */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Condition:</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(motor.condition)}`}>
-                    {motor.condition}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeColor(motor.type)}`}>
+                    {motor.type} Motor
                   </span>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Last Service</p>
-                  <p className="text-sm font-medium text-gray-900">{new Date(motor.lastService).toLocaleDateString()}</p>
-                </div>
-              </div>
 
-              {/* Location */}
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 text-sm">
-                  <Info className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">Location:</span>
-                  <span className="font-medium text-gray-900">{motor.location}</span>
+                {/* Motor Details */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Manufacturer:</span>
+                    <span className="font-medium text-gray-900">{motor.manufacturer || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Model:</span>
+                    <span className="font-medium text-gray-900">{motor.model || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Serial Number:</span>
+                    <span className="font-mono text-sm text-gray-900">{motor.serial_number || 'N/A'}</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex space-x-2">
-                <button className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
-                  <Eye className="h-4 w-4" />
-                  <span>View Full Specs</span>
-                </button>
-                <button className="px-3 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors flex items-center space-x-1">
-                  <Wrench className="h-4 w-4" />
-                  <span className="hidden sm:inline">Create Job</span>
-                </button>
-                <button className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Edit className="h-4 w-4" />
-                </button>
+                {/* Key Specifications */}
+                <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-1">
+                      <Zap className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-gray-600">Voltage</p>
+                    <p className="font-medium text-gray-900">{motor.voltage || 'N/A'}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-1">
+                      <Settings className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <p className="text-xs text-gray-600">Power</p>
+                    <p className="font-medium text-gray-900">{motor.power || 'N/A'}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-1">
+                      <Gauge className="h-4 w-4 text-green-600" />
+                    </div>
+                    <p className="text-xs text-gray-600">RPM</p>
+                    <p className="font-medium text-gray-900">{motor.rpm || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Condition and Location */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Condition:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(motor.condition)}`}>
+                      {motor.condition}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Last Service</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {motor.last_service ? new Date(motor.last_service).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div className="mb-6">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Info className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Location:</span>
+                    <span className="font-medium text-gray-900">{motor.location || 'N/A'}</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-2">
+                  <button className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                    <Eye className="h-4 w-4" />
+                    <span>View Full Specs</span>
+                  </button>
+                  <button className="px-3 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors flex items-center space-x-1">
+                    <Wrench className="h-4 w-4" />
+                    <span className="hidden sm:inline">Create Job</span>
+                  </button>
+                  <button className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Edit className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Add Motor Modal */}
@@ -372,7 +342,7 @@ const Motors = () => {
             </div>
             
             <div className="p-6">
-              <form className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Tab 1: Basic Information */}
                 {activeTab === 0 && (
                   <div className="space-y-6">
@@ -381,7 +351,11 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Company *
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="company_id"
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Company</option>
                           {companies.map(company => (
                             <option key={company.id} value={company.id}>{company.name}</option>
@@ -394,6 +368,7 @@ const Motors = () => {
                           Motor ID *
                         </label>
                         <input
+                          name="motor_id"
                           type="text"
                           required
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -408,6 +383,7 @@ const Motors = () => {
                           Manufacturer
                         </label>
                         <input
+                          name="manufacturer"
                           type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., Siemens, Baldor, ABB"
@@ -419,6 +395,7 @@ const Motors = () => {
                           Model
                         </label>
                         <input
+                          name="model"
                           type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Model number"
@@ -432,6 +409,7 @@ const Motors = () => {
                           Serial Number
                         </label>
                         <input
+                          name="serial_number"
                           type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Serial number"
@@ -442,7 +420,11 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Type *
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="type"
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Type</option>
                           <option value="AC">AC Motor</option>
                           <option value="DC">DC Motor</option>
@@ -461,16 +443,15 @@ const Motors = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Voltage *
+                          Voltage
                         </label>
                         <div className="flex">
                           <input
-                            type="number"
-                            required
+                            name="voltage"
+                            type="text"
                             className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="460"
+                            placeholder="460V"
                           />
-                          <span className="px-3 py-3 bg-gray-50 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">V</span>
                         </div>
                       </div>
                       
@@ -480,12 +461,11 @@ const Motors = () => {
                         </label>
                         <div className="flex">
                           <input
-                            type="number"
-                            step="0.1"
+                            name="amperage"
+                            type="text"
                             className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="14.2"
+                            placeholder="14.2A"
                           />
-                          <span className="px-3 py-3 bg-gray-50 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">A</span>
                         </div>
                       </div>
                     </div>
@@ -495,23 +475,17 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Power
                         </label>
-                        <div className="flex">
-                          <input
-                            type="number"
-                            step="0.1"
-                            className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="7.5"
-                          />
-                          <select className="px-3 py-3 bg-gray-50 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">
-                            <option value="HP">HP</option>
-                            <option value="kW">kW</option>
-                          </select>
-                        </div>
+                        <input
+                          name="power"
+                          type="text"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="7.5 HP"
+                        />
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phase *
+                          Phase
                         </label>
                         <div className="flex space-x-4 pt-3">
                           <label className="flex items-center">
@@ -531,21 +505,22 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Frequency
                         </label>
-                        <div className="flex">
-                          <input
-                            type="number"
-                            defaultValue={60}
-                            className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                          <span className="px-3 py-3 bg-gray-50 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">Hz</span>
-                        </div>
+                        <input
+                          name="frequency"
+                          type="text"
+                          defaultValue="60Hz"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Connection Type
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="connection_type"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Connection</option>
                           <option value="star">Star (Y)</option>
                           <option value="delta">Delta (Δ)</option>
@@ -565,7 +540,8 @@ const Motors = () => {
                           RPM
                         </label>
                         <input
-                          type="number"
+                          name="rpm"
+                          type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="1750"
                         />
@@ -576,6 +552,7 @@ const Motors = () => {
                           Frame Size
                         </label>
                         <input
+                          name="frame_size"
                           type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., 213T, 215T"
@@ -588,7 +565,10 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Mounting Type
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="mounting_type"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Mounting</option>
                           <option value="foot">Foot Mount</option>
                           <option value="flange">Flange Mount</option>
@@ -601,7 +581,10 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Insulation Class
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="insulation_class"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Class</option>
                           <option value="A">Class A</option>
                           <option value="B">Class B</option>
@@ -617,6 +600,7 @@ const Motors = () => {
                           Duty Cycle
                         </label>
                         <input
+                          name="duty_cycle"
                           type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., S1, S2, S3"
@@ -627,7 +611,10 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Environment
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="environment"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Environment</option>
                           <option value="indoor">Indoor</option>
                           <option value="outdoor">Outdoor</option>
@@ -646,7 +633,11 @@ const Motors = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Current Condition *
                         </label>
-                        <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select 
+                          name="condition"
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                           <option value="">Select Condition</option>
                           <option value="excellent">Excellent - Like new, no issues</option>
                           <option value="good">Good - Minor wear, fully functional</option>
@@ -660,6 +651,7 @@ const Motors = () => {
                           Installation Location
                         </label>
                         <input
+                          name="location"
                           type="text"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., Production Line A, Building 2"
@@ -672,6 +664,7 @@ const Motors = () => {
                         Technical Notes
                       </label>
                       <textarea
+                        name="technical_notes"
                         rows={4}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Additional technical notes, special requirements, maintenance history, etc."
@@ -687,6 +680,7 @@ const Motors = () => {
                       <button
                         type="button"
                         onClick={() => setActiveTab(activeTab - 1)}
+                        disabled={isSubmitting}
                         className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         Previous
@@ -696,6 +690,7 @@ const Motors = () => {
                       <button
                         type="button"
                         onClick={() => setActiveTab(activeTab + 1)}
+                        disabled={isSubmitting}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         Next
@@ -707,6 +702,7 @@ const Motors = () => {
                     <button
                       type="button"
                       onClick={() => setShowAddModal(false)}
+                      disabled={isSubmitting}
                       className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Cancel
@@ -714,9 +710,11 @@ const Motors = () => {
                     {activeTab === 3 && (
                       <button
                         type="submit"
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        disabled={isSubmitting}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
                       >
-                        Save Motor
+                        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                        <span>{isSubmitting ? 'Saving...' : 'Save Motor'}</span>
                       </button>
                     )}
                   </div>
