@@ -10,11 +10,11 @@ import {
   Plus,
   Search,
   Filter,
-  Bell,
-  User,
   Menu,
   X
 } from 'lucide-react';
+import NotificationDropdown from './components/NotificationDropdown';
+import ProfileDropdown from './components/ProfileDropdown';
 import Dashboard from './components/Dashboard';
 import Companies from './components/Companies';
 import Motors from './components/Motors';
@@ -79,13 +79,8 @@ function App() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
-            <Bell className="h-5 w-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span>
-          </button>
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <User className="h-5 w-5 text-gray-600" />
-          </button>
+          <NotificationDropdown />
+          <ProfileDropdown />
         </div>
       </div>
 
@@ -193,19 +188,8 @@ function App() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
-              <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span>
-            </button>
-            <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-gray-600" />
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">Workshop Admin</p>
-                <p className="text-xs text-gray-500">admin@motortrackpro.com</p>
-              </div>
-            </div>
+            <NotificationDropdown />
+            <ProfileDropdown />
           </div>
         </div>
 
