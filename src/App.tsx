@@ -11,7 +11,8 @@ import {
   Edit,
   Wrench,
   Eye,
-  Loader2
+  User,
+  Database
 } from 'lucide-react';
 import { useMotors, useCompanies } from '../hooks/useSupabase';
 import type { Motor } from '../lib/supabase';
