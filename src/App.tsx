@@ -14,7 +14,7 @@ import {
   User,
   Database
 } from 'lucide-react';
-import { useMotors, useCompanies } from '../hooks/useSupabase';
+import { useMotors, useCompanies } from './hooks/useSupabase';
 import type { Motor } from '../lib/supabase';
 
 const Motors = () => {
