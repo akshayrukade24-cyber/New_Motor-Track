@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useMotors, useCompanies } from './hooks/useSupabase';
 import type { Motor } from '../lib/supabase';
-import { Eye, Loader2 } from "lucide-react";
+import {Loader2 } from "lucide-react";
 
 
 const Motors = () => {
