@@ -10,12 +10,35 @@ import {
   CheckCircle,
   Plus
 } from 'lucide-react';
+import { useCompanies, useJobs, useInvoices, useWarranties } from '../hooks/useSupabase';
 
 const Dashboard = () => {
+  const { companies } = useCompanies();
+  const { jobs } = useJobs();
+  const { invoices } = useInvoices();
+  const { warranties } = useWarranties();
+
+  // Calculate real metrics from database
+  const activeCompanies = companies.filter(c => c.status === 'active').length;
+  const totalMotors = companies.reduce((sum, c) => sum + c.motor_count, 0);
+  const jobsThisMonth = jobs.filter(j => {
+    const jobDate = new Date(j.created_at);
+    const now = new Date();
+    return jobDate.getMonth() === now.getMonth() && jobDate.getFullYear() === now.getFullYear();
+  }).length;
+  const monthlyRevenue = invoices
+    .filter(inv => {
+      if (inv.status !== 'paid' || !inv.paid_date) return false;
+      const paidDate = new Date(inv.paid_date);
+      const now = new Date();
+      return paidDate.getMonth() === now.getMonth() && paidDate.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, inv) => sum + inv.total_amount, 0);
+
   const metrics = [
     {
       title: 'Active Companies',
-      value: '24',
+      value: activeCompanies.toString(),
       change: '+12%',
       trend: 'up',
       icon: Building2,
@@ -23,7 +46,7 @@ const Dashboard = () => {
     },
     {
       title: 'Motors in Database',
-      value: '187',
+      value: totalMotors.toString(),
       change: '+8%',
       trend: 'up',
       icon: Settings,
@@ -31,7 +54,7 @@ const Dashboard = () => {
     },
     {
       title: 'Jobs This Month',
-      value: '42',
+      value: jobsThisMonth.toString(),
       change: '+18%',
       trend: 'up',
       icon: Wrench,
@@ -39,7 +62,7 @@ const Dashboard = () => {
     },
     {
       title: 'Monthly Revenue',
-      value: '$18,450',
+      value: `$${monthlyRevenue.toLocaleString()}`,
       change: '+24%',
       trend: 'up',
       icon: DollarSign,
@@ -47,43 +70,16 @@ const Dashboard = () => {
     }
   ];
 
-  const recentActivity = [
-    {
-      id: 'JOB-2024-089',
-      company: 'Manufacturing Solutions Ltd',
-      status: 'completed',
-      date: '2 hours ago',
-      description: 'Stator rewind completed'
-    },
-    {
-      id: 'JOB-2024-088',
-      company: 'Industrial Power Corp',
-      status: 'in_progress',
-      date: '4 hours ago',
-      description: 'Rotor bearing replacement'
-    },
-    {
-      id: 'JOB-2024-087',
-      company: 'Metro Manufacturing',
-      status: 'pending',
-      date: '6 hours ago',
-      description: 'AC motor diagnostic'
-    },
-    {
-      id: 'JOB-2024-086',
-      company: 'Precision Motors Inc',
-      status: 'delivered',
-      date: '1 day ago',
-      description: 'Complete motor rebuild'
-    },
-    {
-      id: 'JOB-2024-085',
-      company: 'Power Systems Ltd',
-      status: 'in_progress',
-      date: '1 day ago',
-      description: 'Generator maintenance'
-    }
-  ];
+  // Get recent jobs from database
+  const recentActivity = jobs
+    .slice(0, 5)
+    .map(job => ({
+      id: job.job_number,
+      company: companies.find(c => c.id === job.company_id)?.name || 'Unknown Company',
+      status: job.status,
+      date: new Date(job.updated_at).toLocaleDateString(),
+      description: job.description.substring(0, 50) + '...'
+    }));
 
   const getStatusColor = (status: string) => {
     switch (status) {

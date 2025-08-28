@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase, type Company, type Motor, type Job, type Invoice, type Warranty, type User } from '../lib/supabase'
 
+// Error handling utility
+const handleSupabaseError = (error: any) => {
+  console.error('Supabase error:', error)
+  if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
+    return 'Database tables not found. Please ensure the database schema is properly set up.'
+  }
+  return error?.message || 'An unexpected error occurred'
+}
+
 // Companies hook
 export const useCompanies = () => {
   const [companies, setCompanies] = useState<Company[]>([])
@@ -10,6 +19,7 @@ export const useCompanies = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data, error } = await supabase
         .from('companies')
         .select('*')
@@ -18,7 +28,7 @@ export const useCompanies = () => {
       if (error) throw error
       setCompanies(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(handleSupabaseError(err))
     } finally {
       setLoading(false)
     }
@@ -36,7 +46,7 @@ export const useCompanies = () => {
       setCompanies(prev => [data, ...prev])
       return data
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to add company')
+      throw new Error(handleSupabaseError(err))
     }
   }
 
@@ -53,7 +63,7 @@ export const useCompanies = () => {
       setCompanies(prev => prev.map(c => c.id === id ? data : c))
       return data
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to update company')
+      throw new Error(handleSupabaseError(err))
     }
   }
 
@@ -73,6 +83,7 @@ export const useMotors = () => {
   const fetchMotors = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data, error } = await supabase
         .from('motors')
         .select(`
@@ -87,7 +98,7 @@ export const useMotors = () => {
       if (error) throw error
       setMotors(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(handleSupabaseError(err))
     } finally {
       setLoading(false)
     }
@@ -105,7 +116,7 @@ export const useMotors = () => {
       await fetchMotors() // Refetch to get company data
       return data
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to add motor')
+      throw new Error(handleSupabaseError(err))
     }
   }
 
@@ -125,6 +136,7 @@ export const useJobs = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data, error } = await supabase
         .from('jobs')
         .select(`
@@ -147,7 +159,7 @@ export const useJobs = () => {
       if (error) throw error
       setJobs(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(handleSupabaseError(err))
     } finally {
       setLoading(false)
     }
@@ -165,7 +177,7 @@ export const useJobs = () => {
       await fetchJobs() // Refetch to get related data
       return data
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to add job')
+      throw new Error(handleSupabaseError(err))
     }
   }
 
@@ -182,7 +194,7 @@ export const useJobs = () => {
       await fetchJobs() // Refetch to get updated data
       return data
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to update job')
+      throw new Error(handleSupabaseError(err))
     }
   }
 
@@ -202,6 +214,7 @@ export const useInvoices = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data, error } = await supabase
         .from('invoices')
         .select(`
@@ -220,7 +233,7 @@ export const useInvoices = () => {
       if (error) throw error
       setInvoices(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(handleSupabaseError(err))
     } finally {
       setLoading(false)
     }
@@ -238,7 +251,7 @@ export const useInvoices = () => {
       await fetchInvoices() // Refetch to get related data
       return data
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to add invoice')
+      throw new Error(handleSupabaseError(err))
     }
   }
 
@@ -258,6 +271,7 @@ export const useWarranties = () => {
   const fetchWarranties = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data, error } = await supabase
         .from('warranties')
         .select(`
@@ -277,7 +291,7 @@ export const useWarranties = () => {
       if (error) throw error
       setWarranties(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(handleSupabaseError(err))
     } finally {
       setLoading(false)
     }
@@ -299,6 +313,7 @@ export const useUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -307,7 +322,7 @@ export const useUsers = () => {
       if (error) throw error
       setUsers(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(handleSupabaseError(err))
     } finally {
       setLoading(false)
     }
