@@ -32,6 +32,16 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
 
+  // Handle navigation from other components
+  React.useEffect(() => {
+    const handleNavigate = (event: CustomEvent) => {
+      setActiveView(event.detail as ActiveView);
+    };
+
+    window.addEventListener('navigate', handleNavigate as EventListener);
+    return () => window.removeEventListener('navigate', handleNavigate as EventListener);
+  }, []);
+
   const navigation = [
     { name: 'Dashboard', icon: LayoutDashboard, key: 'dashboard' as ActiveView },
     { name: 'Companies', icon: Building2, key: 'companies' as ActiveView },
@@ -156,8 +166,8 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <NotificationDropdown />
-              <ProfileDropdown />
+              <NotificationDropdown onNavigate={setActiveView} />
+              <ProfileDropdown onNavigate={setActiveView} />
             </div>
           </div>
         </div>

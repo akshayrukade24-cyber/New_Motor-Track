@@ -8,9 +8,14 @@ interface Notification {
   message: string
   time: string
   read: boolean
+  action?: () => void
 }
 
-const NotificationDropdown = () => {
+interface NotificationDropdownProps {
+  onNavigate?: (view: string) => void;
+}
+
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([
     {
@@ -19,7 +24,8 @@ const NotificationDropdown = () => {
       title: 'Jobs Due Soon',
       message: '3 jobs are due within the next 2 days',
       time: '2 hours ago',
-      read: false
+      read: false,
+      action: () => onNavigate?.('jobs')
     },
     {
       id: '2',
@@ -27,7 +33,8 @@ const NotificationDropdown = () => {
       title: 'Overdue Invoices',
       message: '2 invoices are overdue and require follow-up',
       time: '4 hours ago',
-      read: false
+      read: false,
+      action: () => onNavigate?.('invoices')
     },
     {
       id: '3',
@@ -35,7 +42,8 @@ const NotificationDropdown = () => {
       title: 'Warranties Expiring',
       message: '5 warranties will expire in the next 30 days',
       time: '6 hours ago',
-      read: true
+      read: true,
+      action: () => onNavigate?.('warranties')
     },
     {
       id: '4',
@@ -43,7 +51,8 @@ const NotificationDropdown = () => {
       title: 'Job Completed',
       message: 'JOB-2024-089 has been completed successfully',
       time: '1 day ago',
-      read: true
+      read: true,
+      action: () => onNavigate?.('jobs')
     }
   ])
 
@@ -68,6 +77,14 @@ const NotificationDropdown = () => {
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     )
+  }
+
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.id)
+    if (notification.action) {
+      notification.action()
+      setIsOpen(false)
+    }
   }
 
   const markAllAsRead = () => {
@@ -130,7 +147,7 @@ const NotificationDropdown = () => {
                     className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
                       !notification.read ? 'bg-blue-50' : ''
                     }`}
-                    onClick={() => markAsRead(notification.id)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0 mt-1">
@@ -162,7 +179,14 @@ const NotificationDropdown = () => {
 
             {notifications.length > 0 && (
               <div className="p-3 border-t border-gray-200">
-                <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                <button 
+                  onClick={() => {
+                    setIsOpen(false)
+                    // In a real app, this would navigate to a notifications page
+                    alert('All notifications view - feature coming soon!')
+                  }}
+                  className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
                   View all notifications
                 </button>
               </div>

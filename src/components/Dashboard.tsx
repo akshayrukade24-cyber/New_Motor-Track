@@ -128,11 +128,16 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="mt-4 sm:mt-0 flex space-x-2">
-            <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center space-x-2">
+            <button 
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'jobs' }))}
+              className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center space-x-2"
+            >
               <Plus className="h-4 w-4" />
               <span>Add Company</span>
             </button>
           </div>
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'companies' }))}
         </div>
       </div>
 
@@ -213,6 +218,7 @@ const Dashboard = () => {
               <span>Add Company</span>
             </button>
             <button className="w-full border border-gray-300 text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'motors' }))}
               <Settings className="h-5 w-5" />
               <span>Add Motor</span>
             </button>

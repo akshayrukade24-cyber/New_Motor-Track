@@ -358,7 +358,10 @@ const Companies = () => {
                     disabled={isSubmitting}
                     className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
                   >
-                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <button 
+                    onClick={() => alert('Edit company feature - coming soon!')}
+                    className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
                     <span>{isSubmitting ? 'Saving...' : 'Save Company'}</span>
                   </button>
                 </div>
